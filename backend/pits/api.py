@@ -22,6 +22,10 @@ class StatusIn(Schema):
     status: str
 
 
+class ColIn(Schema):
+    col: int
+
+
 def pit_json(pit: Pit) -> dict:
     rows = pit.samples.order_by("-taken_at", "-id")
     return {
@@ -60,7 +64,7 @@ def board(request):
     yard = Yard.objects.prefetch_related("pits__samples").first()
     if yard is None:
         raise HttpError(404, "尚无鞣场")
-    pits = sorted(yard.pits.all(), key=lambda p: (p.row, str(p.col)))
+    pits = sorted(yard.pits.all(), key=lambda p: (p.row, p.col))
     return {"yard": yard.name, "village": yard.village, "pits": [pit_json(p) for p in pits]}
 
 
@@ -75,17 +79,13 @@ def add_sample(request, pit_id: int, payload: SampleIn):
 
 
 @api.post("/pits/{pit_id}/col", auth=auth)
-def set_col(request, pit_id: int, payload: dict):
-    try:
-        col = int((payload or {}).get("col"))
-    except (TypeError, ValueError):
-        raise HttpError(400, "列号必须是整数")
+def set_col(request, pit_id: int, payload: ColIn):
     pit = Pit.objects.filter(id=pit_id).prefetch_related("samples").first()
     if pit is None:
         raise HttpError(404, "坑不存在")
-    pit.col = col
+    pit.col = payload.col
     pit.save(update_fields=["col"])
-    return {**pit_json(pit), "kickSession": True}
+    return pit_json(pit)
 
 
 @api.post("/pits/{pit_id}/status", auth=auth)

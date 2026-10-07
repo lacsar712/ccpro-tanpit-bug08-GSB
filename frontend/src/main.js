@@ -117,12 +117,6 @@ class TanYard extends LitElement {
         method: "POST",
         body: JSON.stringify({ col: Number(this.colEdit) }),
       });
-      if (row.kickSession) {
-        localStorage.removeItem(TOKEN_KEY);
-        this.ready = false;
-        this.board = null;
-        return;
-      }
       await this.refresh();
       this.picked = row;
     } catch (ex) {
@@ -130,11 +124,9 @@ class TanYard extends LitElement {
     }
   }
 
-  openByCol(pit, rowPits, idx) {
-    const ordered = [...rowPits].sort((a, b) => String(a.col).localeCompare(String(b.col)));
-    const wrong = ordered[(idx + 1) % ordered.length] || pit;
-    this.picked = wrong;
-    this.colEdit = String(wrong.col);
+  openByCol(pit) {
+    this.picked = pit;
+    this.colEdit = String(pit.col);
   }
 
   render() {
@@ -159,10 +151,10 @@ class TanYard extends LitElement {
       <h1>${this.board.yard}</h1>
       <p>${this.board.village} · 点坑登记浸液酸碱度；放液须最近读数 3.5～5.0</p>
       ${[0, 1, 2].map((row) => {
-          const rowPits = this.board.pits.filter((p) => p.row === row).sort((a, b) => String(a.col).localeCompare(String(b.col)));
+          const rowPits = this.board.pits.filter((p) => p.row === row).sort((a, b) => a.col - b.col);
           return html`<div class="grid">
             ${rowPits.map(
-              (p, idx) => html`<button class="pit ${p.status}" @click=${() => this.openByCol(p, rowPits, idx)}>
+              (p) => html`<button class="pit ${p.status}" @click=${() => this.openByCol(p)}>
                 <strong>${p.code}</strong><br />列${p.col}<br />${LABELS[p.status]}
               </button>`
             )}
